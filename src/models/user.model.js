@@ -11,9 +11,6 @@ const userSchema=new mongoose.Schema({
         required:true
     }
 })
-
-
-
 const userModel=mongoose.model("user",userSchema)
 
 

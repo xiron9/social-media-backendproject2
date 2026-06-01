@@ -2,3 +2,6 @@
     "username":"test1",
     "password":"hash(bcryptjs)"
 }
+
+
+POST /api/posts{image-file}[protected]
