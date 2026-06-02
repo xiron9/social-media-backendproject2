@@ -5,6 +5,10 @@ const postSchema=new mongoose.Schema({
     caption:String,
     user:{
         type:mongoose.Schema.Types.ObjectId,
-        ref:'users',
+        ref:'users',/**collection name */
     }
 })
+
+const postModel = mongoose.model("post", postSchema);
+
+module.exports = postModel;

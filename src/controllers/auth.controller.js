@@ -24,14 +24,15 @@ async function registerController(req,res){
         id:user._id
     },process.env.JWT_SECRET)
 
-   res.cookie("token",token
+   res.cookie("token",token)
   /*
   {
   expires:mew Date(Date.now()+1000*60*60*24*7),
   }
+)
   */ 
 
-   )
+   
 
     res.status(201).json({
         message:"user created succesfully",
@@ -82,7 +83,7 @@ async function loginController(req,res){
 
 async function Userprofile(req,res){
  
-    const token=req.cookie.token
+    const token=req.cookies.token
 
     if(!token){
         return res.status(401).json({

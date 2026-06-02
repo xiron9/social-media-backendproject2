@@ -1,4 +1,4 @@
-const jwt=require("jsonwebtokens");
+const jwt=require("jsonwebtoken");
 const userModel=require("../models/user.model");
 
 async function authmiddleware(req,res,next){
@@ -24,4 +24,4 @@ async function authmiddleware(req,res,next){
 
 }
 
-module.exports=authmiddleware
+module.exports=authmiddleware;
