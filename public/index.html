@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Tag Extractor</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body {
+            background-color: #0f172a;
+            color: #f8fafc;
+        }
+        .glass-card {
+            background: rgba(30, 41, 59, 0.7);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .gradient-text {
+            background: linear-gradient(to right, #38bdf8, #818cf8);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .spinner {
+            border: 3px solid rgba(255, 255, 255, 0.1);
+            border-top: 3px solid #38bdf8;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body class="min-h-screen flex items-center justify-center p-6">
+    <div class="max-w-2xl w-full">
+        <div class="text-center mb-10">
+            <h1 class="text-4xl font-extrabold mb-2 gradient-text">AI Tag Extractor</h1>
+            <p class="text-slate-400">Upload an image and let AI generate perfect captions and tags for you.</p>
+        </div>
+
+        <div class="glass-card rounded-2xl p-8 shadow-2xl">
+            <div id="drop-zone" class="border-2 border-dashed border-slate-600 rounded-xl p-10 text-center cursor-pointer hover:border-sky-500 transition-all group">
+                <input type="file" id="image-input" class="hidden" accept="image/*">
+                <div id="preview-container" class="hidden mb-4">
+                    <img id="image-preview" class="max-h-64 mx-auto rounded-lg shadow-lg">
+                </div>
+                <div id="upload-prompt">
+                    <i class="fa-solid fa-cloud-arrow-up text-5xl text-slate-500 group-hover:text-sky-400 mb-4 transition-colors"></i>
+                    <p class="text-lg font-medium">Click or drag image to upload</p>
+                    <p class="text-sm text-slate-500 mt-2">Supports JPG, PNG, WEBP</p>
+                </div>
+            </div>
+
+            <button id="extract-btn" disabled class="w-full mt-6 bg-sky-600 hover:bg-sky-500 disabled:bg-slate-700 disabled:cursor-not-allowed text-white font-bold py-3 rounded-xl transition-all flex items-center justify-center gap-2">
+                <span id="btn-text">Extract Tags</span>
+                <div id="loading-spinner" class="spinner hidden"></div>
+            </button>
+
+            <div id="result-container" class="hidden mt-8 space-y-4">
+                <div class="p-4 bg-slate-800/50 rounded-lg border border-slate-700">
+                    <h3 class="text-sm font-semibold text-sky-400 uppercase tracking-wider mb-2">Generated Caption</h3>
+                    <p id="caption-result" class="text-lg leading-relaxed"></p>
+                </div>
+                <div class="flex justify-end">
+                    <button id="copy-btn" class="text-sm text-slate-400 hover:text-white transition-colors flex items-center gap-1">
+                        <i class="fa-regular fa-copy"></i> Copy to clipboard
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <p class="text-center text-slate-600 text-sm mt-8">
+            Powered by Gemini AI • Social Media Backend Project
+        </p>
+    </div>
+
+    <script>
+        const imageInput = document.getElementById('image-input');
+        const dropZone = document.getElementById('drop-zone');
+        const previewContainer = document.getElementById('preview-container');
+        const imagePreview = document.getElementById('image-preview');
+        const uploadPrompt = document.getElementById('upload-prompt');
+        const extractBtn = document.getElementById('extract-btn');
+        const btnText = document.getElementById('btn-text');
+        const loadingSpinner = document.getElementById('loading-spinner');
+        const resultContainer = document.getElementById('result-container');
+        const captionResult = document.getElementById('caption-result');
+        const copyBtn = document.getElementById('copy-btn');
+
+        // Trigger file input
+        dropZone.addEventListener('click', () => imageInput.click());
+
+        // Drag and drop logic
+        dropZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            dropZone.classList.add('border-sky-500', 'bg-sky-500/5');
+        });
+
+        dropZone.addEventListener('dragleave', () => {
+            dropZone.classList.remove('border-sky-500', 'bg-sky-500/5');
+        });
+
+        dropZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dropZone.classList.remove('border-sky-500', 'bg-sky-500/5');
+            const files = e.dataTransfer.files;
+            if (files.length) handleFile(files[0]);
+        });
+
+        imageInput.addEventListener('change', (e) => {
+            if (e.target.files.length) handleFile(e.target.files[0]);
+        });
+
+        function handleFile(file) {
+            if (!file.type.startsWith('image/')) return;
+            
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                imagePreview.src = e.target.result;
+                previewContainer.classList.remove('hidden');
+                uploadPrompt.classList.add('hidden');
+                extractBtn.disabled = false;
+                resultContainer.classList.add('hidden');
+            };
+            reader.readAsDataURL(file);
+        }
+
+        extractBtn.addEventListener('click', async () => {
+            const file = imageInput.files[0] || (await getBlobFromUrl(imagePreview.src));
+            if (!file) return;
+
+            const formData = new FormData();
+            formData.append('image', file);
+
+            // UI Loading state
+            extractBtn.disabled = true;
+            btnText.textContent = 'Analyzing...';
+            loadingSpinner.classList.remove('hidden');
+            resultContainer.classList.add('hidden');
+
+            try {
+                const response = await fetch('/api/posts/extract-tags', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const data = await response.json();
+                
+                if (data.caption) {
+                    captionResult.textContent = data.caption;
+                    resultContainer.classList.remove('hidden');
+                } else {
+                    alert('Error: ' + (data.message || 'Could not extract tags'));
+                }
+            } catch (err) {
+                console.error(err);
+                alert('An error occurred while connecting to the server.');
+            } finally {
+                extractBtn.disabled = false;
+                btnText.textContent = 'Extract Tags';
+                loadingSpinner.classList.add('hidden');
+            }
+        });
+
+        async function getBlobFromUrl(url) {
+            const response = await fetch(url);
+            return await response.blob();
+        }
+
+        copyBtn.addEventListener('click', () => {
+            navigator.clipboard.writeText(captionResult.textContent);
+            const originalText = copyBtn.innerHTML;
+            copyBtn.innerHTML = '<i class="fa-solid fa-check"></i> Copied!';
+            setTimeout(() => {
+                copyBtn.innerHTML = originalText;
+            }, 2000);
+        });
+    </script>
+</body>
+</html>

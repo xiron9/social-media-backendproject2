@@ -13,4 +13,24 @@ async function createPostController(req,res){
         caption
     })
 }
-module.exports = {createPostController};
+
+async function extractTagsController(req, res) {
+    try {
+        const file = req.file;
+        if (!file) {
+            return res.status(400).json({ message: "No image uploaded" });
+        }
+
+        const base64Image = new Buffer.from(file.buffer).toString('base64');
+        const caption = await generateCaption(base64Image);
+
+        res.json({
+            caption
+        });
+    } catch (error) {
+        console.error("Extraction error:", error);
+        res.status(500).json({ message: "Failed to extract tags" });
+    }
+}
+
+module.exports = {createPostController, extractTagsController};

@@ -35,7 +35,7 @@ const response = await ai.models.generateContent({
     you will be given an image and you need to generate a caption for it.
     you generatesingle caption for the image.
     your caption should be short and concise.
-    you use hastags and emojis in the caption
+    you use hastags and emojis in the caption.
     `
   }
 });
