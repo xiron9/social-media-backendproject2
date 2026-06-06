@@ -3,182 +3,588 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI Tag Extractor</title>
+    <title>SENSEI AI | Neural Content Architecture</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
     <style>
+        :root {
+            /* Brand Tokens (OKLCH mapping) */
+            --midnight-void: oklch(5.31% 0.016 261);
+            --dark-carbon: oklch(7.79% 0.016 261);
+            --kinetic-cyan: oklch(67.7% 0.165 200);
+            --cyber-violet: oklch(58.37% 0.231 300);
+            --primary-base: oklch(98.39% 0.007 240);
+            --subtext: oklch(66.5% 0.038 240);
+            --warn-muted: oklch(55.02% 0.177 30);
+            --border-raw: oklch(20% 0.01 260);
+            --raw-muted-zinc-05: rgba(255, 255, 255, 0.05);
+            --raw-muted-zinc-10: rgba(255, 255, 255, 0.1);
+        }
+
+        * {
+            cursor: crosshair !important;
+        }
+
         body {
-            background-color: #0f172a;
-            color: #f8fafc;
+            font-family: -apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI', system-ui, sans-serif;
+            background-color: var(--midnight-void);
+            color: var(--primary-base);
+            margin: 0;
+            overflow-x: hidden;
+            letter-spacing: -0.01em;
         }
-        .glass-card {
-            background: rgba(30, 41, 59, 0.7);
-            backdrop-filter: blur(12px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
+
+        /* Structural Grid */
+        .workspace-grid {
+            display: grid;
+            grid-template-columns: 240px 1fr;
+            min-height: 100vh;
         }
-        .gradient-text {
-            background: linear-gradient(to right, #38bdf8, #818cf8);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
+
+        .border-r-blueprint { border-right: 1px solid var(--border-raw); }
+        .border-b-blueprint { border-bottom: 1px solid var(--border-raw); }
+        .border-blueprint { border: 1px solid var(--border-raw); }
+
+        .blueprint-bg {
+            background-image: 
+                linear-gradient(var(--raw-muted-zinc-05) 1px, transparent 1px),
+                linear-gradient(90deg, var(--raw-muted-zinc-05) 1px, transparent 1px);
+            background-size: 20px 20px;
         }
-        .spinner {
-            border: 3px solid rgba(255, 255, 255, 0.1);
-            border-top: 3px solid #38bdf8;
-            border-radius: 50%;
-            width: 24px;
-            height: 24px;
-            animation: spin 1s linear infinite;
+
+        .noise-overlay {
+            position: fixed;
+            inset: 0;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+            opacity: 0.02;
+            pointer-events: none;
+            z-index: 100;
         }
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
+
+        /* Typography */
+        h1, h2, h3 {
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .text-subtext { color: var(--subtext); }
+        .text-cyan { color: var(--kinetic-cyan); }
+        .text-violet { color: var(--cyber-violet); }
+
+        /* Components */
+        .nav-item {
+            padding: 0.75rem 1rem;
+            font-size: 0.75rem;
+            font-weight: 500;
+            color: var(--subtext);
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            border-bottom: 1px solid transparent;
+        }
+
+        .nav-item:hover, .nav-item.active {
+            color: var(--primary-base);
+            background: var(--raw-muted-zinc-05);
+        }
+
+        .nav-item.active {
+            border-right: 2px solid var(--kinetic-cyan);
+        }
+
+        .action-button {
+            background: var(--raw-muted-zinc-10);
+            border: 1px solid var(--border-raw);
+            padding: 0.5rem 1rem;
+            font-size: 0.7rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        .action-button:hover {
+            background: var(--kinetic-cyan);
+            color: var(--midnight-void);
+            transform: translateY(-1px);
+        }
+
+        .status-pill {
+            font-size: 0.65rem;
+            font-weight: 700;
+            padding: 0.15rem 0.5rem;
+            border-radius: 2px;
+            background: var(--raw-muted-zinc-10);
+            border: 1px solid var(--border-raw);
+            text-transform: uppercase;
+        }
+
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 4px; height: 4px; }
+        ::-webkit-scrollbar-track { background: var(--midnight-void); }
+        ::-webkit-scrollbar-thumb { background: var(--border-raw); }
+        ::-webkit-scrollbar-thumb:hover { background: var(--subtext); }
+
+        /* Animation Classes */
+        .spring-up {
+            animation: springUp 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+        }
+
+        @keyframes springUp {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        #drop-zone.drag-active {
+            border-color: var(--kinetic-cyan);
+            background: var(--raw-muted-zinc-10);
+        }
+
+        .tag-pill {
+            background: var(--dark-carbon);
+            border: 1px solid var(--border-raw);
+            padding: 0.25rem 0.6rem;
+            font-size: 0.7rem;
+            border-radius: 2px;
         }
     </style>
 </head>
-<body class="min-h-screen flex items-center justify-center p-6">
-    <div class="max-w-2xl w-full">
-        <div class="text-center mb-10">
-            <h1 class="text-4xl font-extrabold mb-2 gradient-text">AI Tag Extractor</h1>
-            <p class="text-slate-400">Upload an image and let AI generate perfect captions and tags for you.</p>
-        </div>
+<body>
+    <div class="noise-overlay"></div>
 
-        <div class="glass-card rounded-2xl p-8 shadow-2xl">
-            <div id="drop-zone" class="border-2 border-dashed border-slate-600 rounded-xl p-10 text-center cursor-pointer hover:border-sky-500 transition-all group">
-                <input type="file" id="image-input" class="hidden" accept="image/*">
-                <div id="preview-container" class="hidden mb-4">
-                    <img id="image-preview" class="max-h-64 mx-auto rounded-lg shadow-lg">
-                </div>
-                <div id="upload-prompt">
-                    <i class="fa-solid fa-cloud-arrow-up text-5xl text-slate-500 group-hover:text-sky-400 mb-4 transition-colors"></i>
-                    <p class="text-lg font-medium">Click or drag image to upload</p>
-                    <p class="text-sm text-slate-500 mt-2">Supports JPG, PNG, WEBP</p>
+    <div class="workspace-grid">
+        <!-- Sidebar -->
+        <aside class="border-r-blueprint flex flex-col bg-[var(--midnight-void)] z-50">
+            <div class="p-6 border-b-blueprint">
+                <div class="flex items-center gap-3">
+                    <div class="w-2 h-2 bg-[var(--kinetic-cyan)] rounded-full"></div>
+                    <span class="text-xs font-bold tracking-[0.2em]">SENSEI <span class="text-subtext">CORE</span></span>
                 </div>
             </div>
 
-            <button id="extract-btn" disabled class="w-full mt-6 bg-sky-600 hover:bg-sky-500 disabled:bg-slate-700 disabled:cursor-not-allowed text-white font-bold py-3 rounded-xl transition-all flex items-center justify-center gap-2">
-                <span id="btn-text">Extract Tags</span>
-                <div id="loading-spinner" class="spinner hidden"></div>
-            </button>
+            <nav class="flex-1 py-4">
+                <div class="px-6 mb-2 text-[0.6rem] font-bold text-subtext uppercase tracking-widest">Workspace</div>
+                <a href="#" onclick="switchTab('extract')" class="nav-item active" data-tab="extract">
+                    <i class="fa-solid fa-layer-group w-4"></i> Neural Extractor
+                </a>
+                <a href="#" onclick="switchTab('history')" class="nav-item" data-tab="history">
+                    <i class="fa-solid fa-database w-4"></i> Content Archive
+                </a>
+                
+                <div class="px-6 mt-8 mb-2 text-[0.6rem] font-bold text-subtext uppercase tracking-widest">System</div>
+                <a href="#" class="nav-item">
+                    <i class="fa-solid fa-code-branch w-4"></i> API Access
+                </a>
+                <a href="#" class="nav-item">
+                    <i class="fa-solid fa-sliders w-4"></i> Parameters
+                </a>
+            </nav>
 
-            <div id="result-container" class="hidden mt-8 space-y-4">
-                <div class="p-4 bg-slate-800/50 rounded-lg border border-slate-700">
-                    <h3 class="text-sm font-semibold text-sky-400 uppercase tracking-wider mb-2">Generated Caption</h3>
-                    <p id="caption-result" class="text-lg leading-relaxed"></p>
-                </div>
-                <div class="flex justify-end">
-                    <button id="copy-btn" class="text-sm text-slate-400 hover:text-white transition-colors flex items-center gap-1">
-                        <i class="fa-regular fa-copy"></i> Copy to clipboard
-                    </button>
+            <div class="p-4 border-t-blueprint">
+                <div id="auth-section">
+                    <!-- Dynamic Auth -->
                 </div>
             </div>
-        </div>
+        </aside>
 
-        <p class="text-center text-slate-600 text-sm mt-8">
-            Powered by Gemini AI • Social Media Backend Project
-        </p>
+        <!-- Main Content -->
+        <main class="relative overflow-hidden blueprint-bg">
+            <!-- Header Bar -->
+            <header class="h-16 border-b-blueprint flex items-center justify-between px-8 bg-[var(--midnight-void)]/80 backdrop-blur-md sticky top-0 z-40">
+                <div class="flex items-center gap-6">
+                    <div class="flex items-center gap-2">
+                        <span class="status-pill text-cyan">System.Active</span>
+                        <span class="text-[10px] text-subtext font-mono">v4.2.0-stable</span>
+                    </div>
+                </div>
+                
+                <div class="flex items-center gap-4">
+                    <div id="user-display" class="hidden flex items-center gap-3">
+                        <span id="username-text" class="text-[0.7rem] font-mono text-subtext uppercase">Guest_00</span>
+                        <button onclick="handleLogout()" class="text-xs text-subtext hover:text-white transition-colors">
+                            <i class="fa-solid fa-power-off"></i>
+                        </button>
+                    </div>
+                    <div id="guest-actions" class="flex gap-4">
+                        <button onclick="switchTab('login')" class="text-[0.7rem] font-bold uppercase hover:text-cyan transition-colors">Login</button>
+                        <button onclick="switchTab('register')" class="action-button">Initialize Account</button>
+                    </div>
+                </div>
+            </header>
+
+            <div class="p-8 max-w-6xl mx-auto">
+                
+                <!-- Extractor Module -->
+                <section id="tab-extract" class="tab-content active spring-up">
+                    <div class="grid lg:grid-cols-12 gap-8">
+                        <div class="lg:col-span-7 space-y-6">
+                            <div class="border-blueprint p-1 bg-[var(--dark-carbon)]">
+                                <div id="drop-zone" class="border-blueprint border-dashed h-[450px] flex flex-col items-center justify-center relative group transition-all">
+                                    <input type="file" id="image-input" class="hidden" accept="image/*">
+                                    
+                                    <div id="preview-wrapper" class="hidden absolute inset-0 p-4">
+                                        <img id="image-preview" class="w-full h-full object-contain filter grayscale-[0.2] hover:grayscale-0 transition-all duration-500">
+                                        <button onclick="resetUpload(event)" class="absolute top-6 right-6 action-button bg-red-900/20 text-red-400 border-red-900/50">
+                                            Clear Buffer
+                                        </button>
+                                    </div>
+
+                                    <div id="upload-prompt" class="text-center space-y-4">
+                                        <div class="text-[0.6rem] font-mono text-subtext uppercase tracking-widest mb-2">Input_Buffer_Awaiting</div>
+                                        <i class="fa-solid fa-plus text-2xl text-subtext/30"></i>
+                                        <p class="text-[0.75rem] font-medium uppercase tracking-tight">Load Neural Input</p>
+                                        <p class="text-[0.6rem] text-subtext font-mono">Supports JPG // PNG // WEBP</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="lg:col-span-5 space-y-6">
+                            <div class="border-blueprint bg-[var(--dark-carbon)] p-6 h-full flex flex-col">
+                                <h2 class="text-[0.7rem] mb-6 flex items-center gap-2">
+                                    <i class="fa-solid fa-terminal text-cyan"></i>
+                                    Processing Unit
+                                </h2>
+
+                                <button id="extract-btn" disabled class="w-full py-4 bg-white text-black font-black text-xs uppercase tracking-widest disabled:opacity-20 disabled:grayscale transition-all hover:bg-[var(--kinetic-cyan)]">
+                                    Execute Extraction
+                                </button>
+
+                                <div id="result-area" class="mt-8 flex-1 border-t-blueprint pt-6 hidden">
+                                    <div class="space-y-6">
+                                        <div>
+                                            <div class="text-[0.6rem] text-subtext font-bold uppercase mb-2">Neural Output</div>
+                                            <div class="bg-black/40 p-4 border-blueprint text-[0.85rem] leading-relaxed font-light text-slate-300 italic" id="caption-result"></div>
+                                        </div>
+
+                                        <div class="flex justify-between items-center">
+                                            <button onclick="copyCurrentOutput()" class="text-[0.6rem] font-bold text-cyan uppercase hover:underline">
+                                                Copy to Clipboard
+                                            </button>
+                                            <span class="status-pill">734ms</span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div id="idle-log" class="mt-8 flex-1 border-t-blueprint pt-6 font-mono text-[0.6rem] text-subtext space-y-1">
+                                    <p>> system_init_complete</p>
+                                    <p>> awaiting_neural_input...</p>
+                                    <p>> memory_allocation: 12.4GB/16GB</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Archive Module -->
+                <section id="tab-history" class="tab-content spring-up">
+                    <div class="mb-8 flex justify-between items-end border-b-blueprint pb-6">
+                        <div>
+                            <h2 class="text-xl">Content Archive</h2>
+                            <p class="text-[0.7rem] text-subtext font-mono uppercase mt-1">Registry_Records // User_Generated</p>
+                        </div>
+                    </div>
+
+                    <div class="border-blueprint bg-[var(--dark-carbon)]">
+                        <table class="w-full text-left border-collapse">
+                            <thead>
+                                <tr class="border-b-blueprint text-[0.6rem] text-subtext uppercase font-bold tracking-widest">
+                                    <th class="px-6 py-4 font-normal">Reference</th>
+                                    <th class="px-6 py-4 font-normal">Neural Output Preview</th>
+                                    <th class="px-6 py-4 font-normal">Status</th>
+                                    <th class="px-6 py-4 font-normal text-right">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody id="history-rows" class="text-[0.7rem]">
+                                <!-- Rows dynamic -->
+                            </tbody>
+                        </table>
+                        <div id="no-history-msg" class="hidden py-20 text-center text-subtext font-mono text-[0.7rem]">
+                            [ Registry Empty // No Records Found ]
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Auth Modules -->
+                <section id="tab-login" class="tab-content spring-up">
+                    <div class="max-w-sm mx-auto border-blueprint bg-[var(--dark-carbon)] p-8">
+                        <h2 class="text-center mb-8">Access Terminal</h2>
+                        <form id="login-form" class="space-y-4">
+                            <div>
+                                <label class="text-[0.6rem] text-subtext font-bold uppercase block mb-1">Identity</label>
+                                <input type="text" name="username" required class="w-full bg-black border-blueprint p-3 text-xs focus:border-cyan outline-none transition-colors">
+                            </div>
+                            <div>
+                                <label class="text-[0.6rem] text-subtext font-bold uppercase block mb-1">Access_Key</label>
+                                <input type="password" name="password" required class="w-full bg-black border-blueprint p-3 text-xs focus:border-cyan outline-none transition-colors">
+                            </div>
+                            <button type="submit" class="w-full py-4 bg-white text-black font-black text-[0.7rem] uppercase mt-4 hover:bg-cyan transition-colors">Authorize</button>
+                        </form>
+                    </div>
+                </section>
+
+                <section id="tab-register" class="tab-content spring-up">
+                    <div class="max-w-sm mx-auto border-blueprint bg-[var(--dark-carbon)] p-8">
+                        <h2 class="text-center mb-8">Initialize Identity</h2>
+                        <form id="register-form" class="space-y-4">
+                            <div>
+                                <label class="text-[0.6rem] text-subtext font-bold uppercase block mb-1">New_Identity</label>
+                                <input type="text" name="username" required class="w-full bg-black border-blueprint p-3 text-xs focus:border-cyan outline-none transition-colors">
+                            </div>
+                            <div>
+                                <label class="text-[0.6rem] text-subtext font-bold uppercase block mb-1">New_Access_Key</label>
+                                <input type="password" name="password" required class="w-full bg-black border-blueprint p-3 text-xs focus:border-cyan outline-none transition-colors">
+                            </div>
+                            <button type="submit" class="w-full py-4 bg-white text-black font-black text-[0.7rem] uppercase mt-4 hover:bg-violet transition-colors">Create Registry</button>
+                        </form>
+                    </div>
+                </section>
+
+            </div>
+        </main>
+    </div>
+
+    <!-- Feedback Layer -->
+    <div id="toast" class="fixed bottom-8 right-8 z-[200] hidden">
+        <div class="border-blueprint bg-[var(--midnight-void)] p-4 shadow-2xl flex items-center gap-4">
+            <div id="toast-bar" class="w-1 h-8 bg-cyan"></div>
+            <div>
+                <div id="toast-title" class="text-[0.6rem] font-bold uppercase text-subtext">System Notification</div>
+                <div id="toast-message" class="text-[0.7rem] font-medium">Operation Successful</div>
+            </div>
+        </div>
     </div>
 
     <script>
+        let currentUser = null;
+
         const imageInput = document.getElementById('image-input');
         const dropZone = document.getElementById('drop-zone');
-        const previewContainer = document.getElementById('preview-container');
+        const previewWrapper = document.getElementById('preview-wrapper');
         const imagePreview = document.getElementById('image-preview');
         const uploadPrompt = document.getElementById('upload-prompt');
         const extractBtn = document.getElementById('extract-btn');
-        const btnText = document.getElementById('btn-text');
-        const loadingSpinner = document.getElementById('loading-spinner');
-        const resultContainer = document.getElementById('result-container');
+        const resultArea = document.getElementById('result-area');
         const captionResult = document.getElementById('caption-result');
-        const copyBtn = document.getElementById('copy-btn');
+        const idleLog = document.getElementById('idle-log');
 
-        // Trigger file input
-        dropZone.addEventListener('click', () => imageInput.click());
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+            document.getElementById(`tab-${tabId}`).classList.add('active');
+            
+            document.querySelectorAll('.nav-item').forEach(el => {
+                el.classList.remove('active');
+                if(el.dataset.tab === tabId) el.classList.add('active');
+            });
 
-        // Drag and drop logic
-        dropZone.addEventListener('dragover', (e) => {
+            if(tabId === 'history') fetchUserPosts();
+        }
+
+        dropZone.onclick = () => imageInput.click();
+        dropZone.ondragover = (e) => { e.preventDefault(); dropZone.classList.add('drag-active'); };
+        dropZone.ondragleave = () => dropZone.classList.remove('drag-active');
+        dropZone.ondrop = (e) => {
             e.preventDefault();
-            dropZone.classList.add('border-sky-500', 'bg-sky-500/5');
-        });
-
-        dropZone.addEventListener('dragleave', () => {
-            dropZone.classList.remove('border-sky-500', 'bg-sky-500/5');
-        });
-
-        dropZone.addEventListener('drop', (e) => {
-            e.preventDefault();
-            dropZone.classList.remove('border-sky-500', 'bg-sky-500/5');
-            const files = e.dataTransfer.files;
-            if (files.length) handleFile(files[0]);
-        });
-
-        imageInput.addEventListener('change', (e) => {
-            if (e.target.files.length) handleFile(e.target.files[0]);
-        });
+            dropZone.classList.remove('drag-active');
+            if (e.dataTransfer.files.length) handleFile(e.dataTransfer.files[0]);
+        };
+        imageInput.onchange = (e) => { if (e.target.files.length) handleFile(e.target.files[0]); };
 
         function handleFile(file) {
             if (!file.type.startsWith('image/')) return;
-            
             const reader = new FileReader();
             reader.onload = (e) => {
                 imagePreview.src = e.target.result;
-                previewContainer.classList.remove('hidden');
+                previewWrapper.classList.remove('hidden');
                 uploadPrompt.classList.add('hidden');
                 extractBtn.disabled = false;
-                resultContainer.classList.add('hidden');
+                addLog(`File_Buffered: ${file.name} (${(file.size/1024).toFixed(1)}KB)`);
             };
             reader.readAsDataURL(file);
         }
 
-        extractBtn.addEventListener('click', async () => {
-            const file = imageInput.files[0] || (await getBlobFromUrl(imagePreview.src));
+        function resetUpload(e) {
+            e.stopPropagation();
+            imageInput.value = '';
+            previewWrapper.classList.add('hidden');
+            uploadPrompt.classList.remove('hidden');
+            extractBtn.disabled = true;
+            resultArea.classList.add('hidden');
+            addLog('Buffer_Cleared');
+        }
+
+        extractBtn.onclick = async () => {
+            const file = imageInput.files[0];
             if (!file) return;
 
             const formData = new FormData();
             formData.append('image', file);
 
-            // UI Loading state
             extractBtn.disabled = true;
-            btnText.textContent = 'Analyzing...';
-            loadingSpinner.classList.remove('hidden');
-            resultContainer.classList.add('hidden');
+            extractBtn.innerText = 'EXTRACTING...';
+            addLog('Neural_Extraction_Initiated...');
 
             try {
-                const response = await fetch('/api/posts/extract-tags', {
-                    method: 'POST',
-                    body: formData
-                });
-
-                const data = await response.json();
+                const endpoint = currentUser ? '/api/posts' : '/api/posts/extract-tags';
+                const start = Date.now();
+                const res = await fetch(endpoint, { method: 'POST', body: formData });
+                const data = await res.json();
                 
                 if (data.caption) {
-                    captionResult.textContent = data.caption;
-                    resultContainer.classList.remove('hidden');
+                    captionResult.innerText = data.caption;
+                    resultArea.classList.remove('hidden');
+                    const duration = Date.now() - start;
+                    addLog(`Success: Neural_Processing_Complete (${duration}ms)`);
+                    showToast('Extraction Complete', 'success');
                 } else {
-                    alert('Error: ' + (data.message || 'Could not extract tags'));
+                    addLog('Error: Extraction_Node_Failure');
+                    showToast('Extraction Failed', 'error');
                 }
             } catch (err) {
-                console.error(err);
-                alert('An error occurred while connecting to the server.');
+                addLog('Error: Connectivity_Lost');
+                showToast('Server Offline', 'error');
             } finally {
                 extractBtn.disabled = false;
-                btnText.textContent = 'Extract Tags';
-                loadingSpinner.classList.add('hidden');
+                extractBtn.innerText = 'EXECUTE EXTRACTION';
             }
-        });
+        };
 
-        async function getBlobFromUrl(url) {
-            const response = await fetch(url);
-            return await response.blob();
+        function addLog(msg) {
+            const p = document.createElement('p');
+            p.innerText = `> ${msg}`;
+            idleLog.prepend(p);
         }
 
-        copyBtn.addEventListener('click', () => {
-            navigator.clipboard.writeText(captionResult.textContent);
-            const originalText = copyBtn.innerHTML;
-            copyBtn.innerHTML = '<i class="fa-solid fa-check"></i> Copied!';
+        // Auth Logic
+        document.getElementById('login-form').onsubmit = async (e) => {
+            e.preventDefault();
+            const data = Object.fromEntries(new FormData(e.target));
+            const res = await fetch('/auth/login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+            const result = await res.json();
+            if(res.ok) {
+                currentUser = result.user;
+                updateAuthUI();
+                switchTab('extract');
+                showToast('Identity Verified', 'success');
+            } else {
+                showToast(result.message, 'error');
+            }
+        };
+
+        document.getElementById('register-form').onsubmit = async (e) => {
+            e.preventDefault();
+            const data = Object.fromEntries(new FormData(e.target));
+            const res = await fetch('/auth/register', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+            if(res.ok) {
+                showToast('Identity Initialized', 'success');
+                switchTab('login');
+            } else {
+                const result = await res.json();
+                showToast(result.message, 'error');
+            }
+        };
+
+        async function handleLogout() {
+            await fetch('/auth/logout');
+            currentUser = null;
+            updateAuthUI();
+            switchTab('extract');
+            showToast('Registry Logged Out', 'success');
+        }
+
+        async function checkAuth() {
+            try {
+                const res = await fetch('/auth/user');
+                if(res.ok) {
+                    const data = await res.json();
+                    currentUser = data.user;
+                    updateAuthUI();
+                }
+            } catch (err) {}
+        }
+
+        function updateAuthUI() {
+            const display = document.getElementById('user-display');
+            const actions = document.getElementById('guest-actions');
+            const username = document.getElementById('username-text');
+
+            if(currentUser) {
+                display.classList.remove('hidden');
+                actions.classList.add('hidden');
+                username.innerText = currentUser.username.toUpperCase();
+            } else {
+                display.classList.add('hidden');
+                actions.classList.remove('hidden');
+            }
+        }
+
+        async function fetchUserPosts() {
+            if(!currentUser) return;
+            const rows = document.getElementById('history-rows');
+            const empty = document.getElementById('no-history-msg');
+            
+            const res = await fetch('/api/posts');
+            const posts = await res.json();
+            
+            if(posts.length === 0) {
+                empty.classList.remove('hidden');
+                rows.innerHTML = '';
+            } else {
+                empty.classList.add('hidden');
+                rows.innerHTML = posts.map(post => `
+                    <tr class="border-b-blueprint hover:bg-white/[0.02] transition-colors group">
+                        <td class="px-6 py-4">
+                            <div class="w-10 h-10 border-blueprint">
+                                <img src="${post.image}" class="w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all">
+                            </div>
+                        </td>
+                        <td class="px-6 py-4">
+                            <p class="truncate max-w-xs text-subtext">${post.caption}</p>
+                        </td>
+                        <td class="px-6 py-4">
+                            <span class="status-pill">Buffered</span>
+                        </td>
+                        <td class="px-6 py-4 text-right">
+                            <button onclick="copyCurrentOutput('${post.caption}')" class="text-cyan hover:underline">RECALL</button>
+                        </td>
+                    </tr>
+                `).join('');
+            }
+        }
+
+        function showToast(msg, type = 'success') {
+            const toast = document.getElementById('toast');
+            const bar = document.getElementById('toast-bar');
+            document.getElementById('toast-message').innerText = msg;
+            bar.className = `w-1 h-8 ${type === 'success' ? 'bg-cyan' : 'bg-red-500'}`;
+            toast.classList.remove('hidden');
+            gsap.fromTo(toast, { x: 50, opacity: 0 }, { x: 0, opacity: 1, duration: 0.3 });
             setTimeout(() => {
-                copyBtn.innerHTML = originalText;
-            }, 2000);
-        });
+                gsap.to(toast, { x: 50, opacity: 0, duration: 0.3, onComplete: () => toast.classList.add('hidden') });
+            }, 3000);
+        }
+
+        function copyCurrentOutput(text) {
+            const content = text || captionResult.innerText;
+            navigator.clipboard.writeText(content);
+            showToast('Buffer Copied', 'success');
+        }
+
+        checkAuth();
     </script>
 </body>
 </html>
